@@ -157,23 +157,21 @@
         animation__opacity="property: material.opacity; from: 0; to: 1; dur: 1400; easing: easeInOutSine; fill: forwards; startEvents: playIn"
         animation__position="property: position; from: 0 0 -0.1; to: -0.75 0 0.03; dur: 1400; easing: easeInOutSine; fill: forwards; startEvents: playIn">
       </a-image>
-      <!-- Right: soft fade + smooth slope motion, ~1.4s -->
+      <!-- Right: soft fade + smooth slope motion, ~1.4s (swapped with video position) -->
       <a-image class="side-img" id="side-right" src="3.png" position="0 0 -0.1" width="0.5" height="0.5" material="opacity: 0"
         animation__opacity="property: material.opacity; from: 0; to: 1; dur: 1400; easing: easeInOutSine; fill: forwards; startEvents: playIn"
-        animation__position="property: position; from: 0 0 -0.1; to: 0.75 0 0.03; dur: 1400; easing: easeInOutSine; fill: forwards; startEvents: playIn">
+        animation__position="property: position; from: 0 0 -0.1; to: -0.22 -0.82 0.05; dur: 1400; easing: easeInOutSine; fill: forwards; startEvents: playIn">
       </a-image>
-      <!-- Top: parent rises with both images stacked, then children split apart -->
-      <a-entity id="top-group" class="side-img" position="0 0 -0.1">
-        <a-image id="side-top-left" src="top1.jpeg" position="0 0 0.02" width="0.38" height="0.38" material="opacity: 0"></a-image>
-        <a-image id="side-top-right" src="top2.jpeg" position="0 0 0.02" width="0.38" height="0.38" material="opacity: 0"></a-image>
-      </a-entity>
+      <!-- Top: rise together, then split left/right -->
+      <a-image class="side-img" id="side-top-left" src="top1.jpeg" position="0 0 -0.1" width="0.38" height="0.38" material="opacity: 0"></a-image>
+      <a-image class="side-img" id="side-top-right" src="top2.jpeg" position="0 0 -0.1" width="0.38" height="0.38" material="opacity: 0"></a-image>
       <!-- Bottom: WhatsApp 3D model (fixed), fades in on detection -->
       <a-entity class="side-img" id="whatsapp-btn" position="0.2 -0.84 0.04">
         <a-entity id="whatsapp-model-entity" gltf-model="#whatsapp-model" scale="-0.4 -0.4 0.4" rotation="0 180 -90" model-opacity="opacity: 0"></a-entity>
       </a-entity>
 
-      <!-- Video panel: left of WhatsApp, portrait/mobile aspect ratio -->
-      <a-video class="side-img" id="wa-video" src="#wa-vid" position="-0.22 -0.82 0.05"
+      <!-- Video panel: portrait/mobile aspect ratio (swapped with right image position) -->
+      <a-video class="side-img" id="wa-video" src="#wa-vid" position="0.75 0 0.03"
         width="0.45" height="0.8" material="opacity: 0; transparent: true">
       </a-video>
     </a-entity>
@@ -222,13 +220,21 @@
 
     var statusEl = document.getElementById('target-status');
     var targetEl = document.getElementById('target-0');
-    var sideFromPositions = { 'side-left': '0 0 -0.1', 'side-right': '0 0 -0.1', 'top-group': '0 0 -0.1', 'whatsapp-btn': '0.2 -0.84 0.04', 'wa-video': '-0.22 -0.82 0.05' };
-    var topChildFromPosition = '0 0 0.02';
-    var topSplitLeftPosition = '-0.28 0 0.02';
-    var topSplitRightPosition = '0.28 0 0.02';
+    var sideFromPositions = {
+      'side-left': '0 0 -0.1',
+      'side-right': '0 0 -0.1',
+      'side-top-left': '0 0 -0.1',
+      'side-top-right': '0 0 -0.1',
+      'whatsapp-btn': '0.2 -0.84 0.04',
+      'wa-video': '0.75 0 0.03'
+    };
+    var topRisePosition = '0 0.55 0.03';
+    var topSplitLeftPosition = '-0.28 0.55 0.03';
+    var topSplitRightPosition = '0.28 0.55 0.03';
     var topRiseDuration = 800;
     var topSplitDuration = 600;
     var topSplitTimeout = null;
+    var topAnimGen = 0;
     var VIDEO_MAX_SIZE = 0.8;
 var WHATSAPP_NUMBER = '919819605451';
 
@@ -297,7 +303,7 @@ var WHATSAPP_NUMBER = '919819605451';
         if (el) setAspectRatio(el, 0.38);
       });
       targetEl.querySelectorAll('.side-img').forEach(function (el) {
-        if (el.id === 'wa-video' || el.id === 'top-group') return;
+        if (el.id === 'wa-video') return;
         if (el.id === 'side-top-left' || el.id === 'side-top-right') return;
         setAspectRatio(el, 0.5);
       });
@@ -308,97 +314,79 @@ var WHATSAPP_NUMBER = '919819605451';
       );
     });
 
-    function playTopSplit(left, right) {
-      left.removeAttribute('animation__split');
-      right.removeAttribute('animation__split');
-      left.setAttribute('position', topChildFromPosition);
-      right.setAttribute('position', topChildFromPosition);
+    function parseVec3(str) {
+      var parts = str.trim().split(/\s+/).map(Number);
+      return { x: parts[0], y: parts[1], z: parts[2] };
+    }
 
-      requestAnimationFrame(function () {
-        left.setAttribute('animation__split', {
-          property: 'position',
-          from: topChildFromPosition,
-          to: topSplitLeftPosition,
-          dur: topSplitDuration,
-          easing: 'easeInOutSine',
-          fill: 'forwards',
-          autoplay: true
+    function easeInOutSine(t) {
+      return 0.5 - 0.5 * Math.cos(Math.PI * t);
+    }
+
+    function animateElPosition(el, fromStr, toStr, duration, gen) {
+      var from = parseVec3(fromStr);
+      var to = parseVec3(toStr);
+      var start = performance.now();
+
+      function step(now) {
+        if (gen !== topAnimGen) return;
+        var t = Math.min((now - start) / duration, 1);
+        var eased = easeInOutSine(t);
+        el.setAttribute('position', {
+          x: from.x + (to.x - from.x) * eased,
+          y: from.y + (to.y - from.y) * eased,
+          z: from.z + (to.z - from.z) * eased
         });
-        right.setAttribute('animation__split', {
-          property: 'position',
-          from: topChildFromPosition,
-          to: topSplitRightPosition,
-          dur: topSplitDuration,
-          easing: 'easeInOutSine',
-          fill: 'forwards',
-          autoplay: true
-        });
-      });
+        if (t < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+
+    function fadeElOpacity(el, duration, gen) {
+      var start = performance.now();
+      function step(now) {
+        if (gen !== topAnimGen) return;
+        var t = Math.min((now - start) / duration, 1);
+        el.setAttribute('material', 'opacity', easeInOutSine(t));
+        if (t < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
     }
 
     function playTopAnimations() {
-      var group = document.getElementById('top-group');
       var left = document.getElementById('side-top-left');
       var right = document.getElementById('side-top-right');
-      if (!group || !left || !right) return;
+      if (!left || !right) return;
+
+      var gen = ++topAnimGen;
 
       if (topSplitTimeout) {
         clearTimeout(topSplitTimeout);
         topSplitTimeout = null;
       }
 
-      group.setAttribute('position', sideFromPositions['top-group']);
-      left.setAttribute('position', topChildFromPosition);
-      right.setAttribute('position', topChildFromPosition);
+      var startPos = sideFromPositions['side-top-left'];
+      left.setAttribute('position', startPos);
+      right.setAttribute('position', startPos);
       left.setAttribute('material', 'opacity', 0);
       right.setAttribute('material', 'opacity', 0);
 
-      group.removeAttribute('animation__rise');
-      left.removeAttribute('animation__opacity');
-      left.removeAttribute('animation__split');
-      right.removeAttribute('animation__opacity');
-      right.removeAttribute('animation__split');
-
-      left.setAttribute('animation__opacity', {
-        property: 'material.opacity',
-        from: 0,
-        to: 1,
-        dur: 1400,
-        easing: 'easeInOutSine',
-        fill: 'forwards',
-        autoplay: true
-      });
-      right.setAttribute('animation__opacity', {
-        property: 'material.opacity',
-        from: 0,
-        to: 1,
-        dur: 1400,
-        easing: 'easeInOutSine',
-        fill: 'forwards',
-        autoplay: true
-      });
-
-      requestAnimationFrame(function () {
-        group.setAttribute('animation__rise', {
-          property: 'position',
-          from: sideFromPositions['top-group'],
-          to: '0 0.55 0.03',
-          dur: topRiseDuration,
-          easing: 'easeInOutSine',
-          fill: 'forwards',
-          autoplay: true
-        });
-      });
+      fadeElOpacity(left, 1400, gen);
+      fadeElOpacity(right, 1400, gen);
+      animateElPosition(left, startPos, topRisePosition, topRiseDuration, gen);
+      animateElPosition(right, startPos, topRisePosition, topRiseDuration, gen);
 
       topSplitTimeout = setTimeout(function () {
         topSplitTimeout = null;
-        playTopSplit(left, right);
-      }, topRiseDuration + 80);
+        if (gen !== topAnimGen) return;
+        animateElPosition(left, topRisePosition, topSplitLeftPosition, topSplitDuration, gen);
+        animateElPosition(right, topRisePosition, topSplitRightPosition, topSplitDuration, gen);
+      }, topRiseDuration + 50);
     }
 
     function playSideAnimations() {
       targetEl.querySelectorAll('.side-img').forEach(function (el) {
-        if (el.id === 'top-group') return;
+        if (el.id === 'side-top-left' || el.id === 'side-top-right') return;
         el.emit('playIn');
       });
       playTopAnimations();
@@ -407,34 +395,14 @@ var WHATSAPP_NUMBER = '919819605451';
     // Keep video progress between targetLost/targetFound
     var waVideoSavedTime = 0;
     function resetSideImages() {
+      topAnimGen++;
       if (topSplitTimeout) {
         clearTimeout(topSplitTimeout);
         topSplitTimeout = null;
       }
 
-      var topLeft = document.getElementById('side-top-left');
-      var topRight = document.getElementById('side-top-right');
-      var topGroup = document.getElementById('top-group');
-      if (topGroup) {
-        topGroup.setAttribute('position', sideFromPositions['top-group']);
-        topGroup.removeAttribute('animation__rise');
-      }
-      if (topLeft) {
-        topLeft.setAttribute('position', topChildFromPosition);
-        topLeft.setAttribute('material', 'opacity', 0);
-        topLeft.removeAttribute('animation__opacity');
-        topLeft.removeAttribute('animation__split');
-      }
-      if (topRight) {
-        topRight.setAttribute('position', topChildFromPosition);
-        topRight.setAttribute('material', 'opacity', 0);
-        topRight.removeAttribute('animation__opacity');
-        topRight.removeAttribute('animation__split');
-      }
-
       targetEl.querySelectorAll('.side-img').forEach(function (el) {
         var id = el.getAttribute('id');
-        if (id === 'top-group') return;
         if (sideFromPositions[id]) {
           el.setAttribute('position', sideFromPositions[id]);
           if (id !== 'whatsapp-btn' && id !== 'wa-video') {
