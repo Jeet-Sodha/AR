@@ -160,13 +160,13 @@
       <!-- Right: soft fade + smooth slope motion, ~1.4s (swapped with video position) -->
       <a-image class="side-img" id="side-right" src="3.png" position="0 0 -0.1" width="0.5" height="0.5" material="opacity: 0"
         animation__opacity="property: material.opacity; from: 0; to: 1; dur: 1400; easing: easeInOutSine; fill: forwards; startEvents: playIn"
-        animation__position="property: position; from: 0 0 -0.1; to: -0.22 -0.82 0.05; dur: 1400; easing: easeInOutSine; fill: forwards; startEvents: playIn">
+        animation__position="property: position; from: 0 0 -0.1; to: -0.22 -0.62 0.05; dur: 1400; easing: easeInOutSine; fill: forwards; startEvents: playIn">
       </a-image>
       <!-- Top: rise together, then split left/right -->
       <a-image class="side-img" id="side-top-left" src="top1.jpeg" position="0 0 -0.1" width="0.38" height="0.38" material="opacity: 0"></a-image>
       <a-image class="side-img" id="side-top-right" src="top2.jpeg" position="0 0 -0.1" width="0.38" height="0.38" material="opacity: 0"></a-image>
       <!-- Bottom: WhatsApp 3D model (fixed), fades in on detection -->
-      <a-entity class="side-img" id="whatsapp-btn" position="0.2 -0.84 0.04">
+      <a-entity class="side-img" id="whatsapp-btn" position="0.2 -0.64 0.04">
         <a-entity id="whatsapp-model-entity" gltf-model="#whatsapp-model" scale="-0.4 -0.4 0.4" rotation="0 180 -90" model-opacity="opacity: 0"></a-entity>
       </a-entity>
 
@@ -225,7 +225,7 @@
       'side-right': '0 0 -0.1',
       'side-top-left': '0 0 -0.1',
       'side-top-right': '0 0 -0.1',
-      'whatsapp-btn': '0.2 -0.84 0.04',
+      'whatsapp-btn': '0.2 -0.64 0.04',
       'wa-video': '0.75 0 0.03'
     };
     var topRisePosition = '0 0.55 0.03';
@@ -236,7 +236,7 @@
     var topSplitTimeout = null;
     var topAnimGen = 0;
     var VIDEO_MAX_SIZE = 0.8;
-var WHATSAPP_NUMBER = '919819605451';
+    var WHATSAPP_NUMBER = '919819605451';
 
     function openWhatsApp() {
       var num = WHATSAPP_NUMBER.replace(/\D/g, '');
@@ -353,6 +353,7 @@ var WHATSAPP_NUMBER = '919819605451';
       requestAnimationFrame(step);
     }
 
+    // FIX 3: Split starts 100ms earlier — timeout reduced from (topRiseDuration + 50) to (topRiseDuration - 50)
     function playTopAnimations() {
       var left = document.getElementById('side-top-left');
       var right = document.getElementById('side-top-right');
@@ -381,7 +382,7 @@ var WHATSAPP_NUMBER = '919819605451';
         if (gen !== topAnimGen) return;
         animateElPosition(left, topRisePosition, topSplitLeftPosition, topSplitDuration, gen);
         animateElPosition(right, topRisePosition, topSplitRightPosition, topSplitDuration, gen);
-      }, topRiseDuration + 50);
+      }, topRiseDuration - 50); // was +50, now -50 → splits 100ms earlier
     }
 
     function playSideAnimations() {
@@ -414,6 +415,7 @@ var WHATSAPP_NUMBER = '919819605451';
       var waModel = document.getElementById('whatsapp-model-entity');
       if (waModel) waModel.setAttribute('model-opacity', 'opacity', 0);
 
+      // FIX 2: Also reset video opacity to 0 on lost so fade-in replays
       var waVideoEl = document.getElementById('wa-video');
       if (waVideoEl) waVideoEl.setAttribute('material', 'opacity', 0);
 
@@ -448,17 +450,24 @@ var WHATSAPP_NUMBER = '919819605451';
         });
       }
 
-      // Video: fade in 2s, play immediately (muted)
+      // FIX 2: Video fade-in — animate opacity 0→1 over 1.5s using rAF
       var waVideoEl = document.getElementById('wa-video');
       var waVidAsset = document.getElementById('wa-vid');
       if (waVideoEl) {
         waVideoEl.setAttribute('position', sideFromPositions['wa-video']);
         setVideoAspectRatio(waVideoEl, waVidAsset, VIDEO_MAX_SIZE);
-        waVideoEl.removeAttribute('animation__waVideoOpacity');
-        waVideoEl.setAttribute('material', 'opacity', 1);
+        waVideoEl.setAttribute('material', 'opacity', 0);
+
+        var vidFadeDuration = 1500;
+        var vidFadeStart = performance.now();
+        (function fadeVideo(now) {
+          var t = Math.min((now - vidFadeStart) / vidFadeDuration, 1);
+          var eased = 0.5 - 0.5 * Math.cos(Math.PI * t);
+          waVideoEl.setAttribute('material', 'opacity', eased);
+          if (t < 1) requestAnimationFrame(fadeVideo);
+        })(performance.now());
       }
       if (waVidAsset) {
-        // Reliable autoplay: keep muted (mobile-friendly)
         waVidAsset.muted = true;
         try { waVidAsset.currentTime = waVideoSavedTime || 0; } catch (e) {}
         try { waVidAsset.play(); } catch (e) {}
@@ -483,6 +492,7 @@ var WHATSAPP_NUMBER = '919819605451';
         } catch (e) {}
       });
     })();
+
     targetEl.addEventListener('targetLost', function () {
       statusEl.classList.remove('hidden');
       whatsappUiBtn.classList.remove('visible');
