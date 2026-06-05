@@ -162,14 +162,16 @@
         animation__opacity="property: material.opacity; from: 0; to: 1; dur: 1400; easing: easeInOutSine; fill: forwards; startEvents: playIn"
         animation__position="property: position; from: 0 0 -0.1; to: 0.75 0 0.03; dur: 1400; easing: easeInOutSine; fill: forwards; startEvents: playIn">
       </a-image>
-      <!-- Top: two images side by side, soft fade + smooth slope motion, ~1.4s -->
+      <!-- Top: rise together, then split left/right -->
       <a-image class="side-img" id="side-top-left" src="top1.jpeg" position="0 0 -0.1" width="0.38" height="0.38" material="opacity: 0"
         animation__opacity="property: material.opacity; from: 0; to: 1; dur: 1400; easing: easeInOutSine; fill: forwards; startEvents: playIn"
-        animation__position="property: position; from: 0 0 -0.1; to: -0.28 0.55 0.03; dur: 1400; easing: easeInOutSine; fill: forwards; startEvents: playIn">
+        animation__rise="property: position; from: 0 0 -0.1; to: 0 0.55 0.03; dur: 800; easing: easeInOutSine; fill: forwards; startEvents: playIn"
+        animation__split="property: position; from: 0 0.55 0.03; to: -0.28 0.55 0.03; dur: 600; delay: 800; easing: easeInOutSine; fill: forwards; startEvents: playIn">
       </a-image>
       <a-image class="side-img" id="side-top-right" src="top2.jpeg" position="0 0 -0.1" width="0.38" height="0.38" material="opacity: 0"
         animation__opacity="property: material.opacity; from: 0; to: 1; dur: 1400; easing: easeInOutSine; fill: forwards; startEvents: playIn"
-        animation__position="property: position; from: 0 0 -0.1; to: 0.28 0.55 0.03; dur: 1400; easing: easeInOutSine; fill: forwards; startEvents: playIn">
+        animation__rise="property: position; from: 0 0 -0.1; to: 0 0.55 0.03; dur: 800; easing: easeInOutSine; fill: forwards; startEvents: playIn"
+        animation__split="property: position; from: 0 0.55 0.03; to: 0.28 0.55 0.03; dur: 600; delay: 800; easing: easeInOutSine; fill: forwards; startEvents: playIn">
       </a-image>
       <!-- Bottom: WhatsApp 3D model (fixed), fades in on detection -->
       <a-entity class="side-img" id="whatsapp-btn" position="0.2 -0.84 0.04">
@@ -177,7 +179,7 @@
       </a-entity>
 
       <!-- Video panel: left of WhatsApp, portrait/mobile aspect ratio -->
-      <a-video class="side-img" id="wa-video" src="#wa-vid" position="-0.55 -0.82 0.05"
+      <a-video class="side-img" id="wa-video" src="#wa-vid" position="-0.38 -0.82 0.05"
         width="0.45" height="0.8" material="opacity: 0; transparent: true">
       </a-video>
     </a-entity>
@@ -226,7 +228,7 @@
 
     var statusEl = document.getElementById('target-status');
     var targetEl = document.getElementById('target-0');
-    var sideFromPositions = { 'side-left': '0 0 -0.1', 'side-right': '0 0 -0.1', 'side-top-left': '0 0 -0.1', 'side-top-right': '0 0 -0.1', 'whatsapp-btn': '0.2 -0.84 0.04', 'wa-video': '-0.55 -0.82 0.05' };
+    var sideFromPositions = { 'side-left': '0 0 -0.1', 'side-right': '0 0 -0.1', 'side-top-left': '0 0 -0.1', 'side-top-right': '0 0 -0.1', 'whatsapp-btn': '0.2 -0.84 0.04', 'wa-video': '-0.38 -0.82 0.05' };
     var VIDEO_MAX_SIZE = 0.8;
 var WHATSAPP_NUMBER = '919819605451';
 
