@@ -224,6 +224,11 @@
     var targetEl = document.getElementById('target-0');
     var sideFromPositions = { 'side-left': '0 0 -0.1', 'side-right': '0 0 -0.1', 'top-group': '0 0 -0.1', 'whatsapp-btn': '0.2 -0.84 0.04', 'wa-video': '-0.22 -0.82 0.05' };
     var topChildFromPosition = '0 0 0.02';
+    var topSplitLeftPosition = '-0.28 0 0.02';
+    var topSplitRightPosition = '0.28 0 0.02';
+    var topRiseDuration = 800;
+    var topSplitDuration = 600;
+    var topSplitTimeout = null;
     var VIDEO_MAX_SIZE = 0.8;
 var WHATSAPP_NUMBER = '919819605451';
 
@@ -303,11 +308,44 @@ var WHATSAPP_NUMBER = '919819605451';
       );
     });
 
+    function playTopSplit(left, right) {
+      left.removeAttribute('animation__split');
+      right.removeAttribute('animation__split');
+      left.setAttribute('position', topChildFromPosition);
+      right.setAttribute('position', topChildFromPosition);
+
+      requestAnimationFrame(function () {
+        left.setAttribute('animation__split', {
+          property: 'position',
+          from: topChildFromPosition,
+          to: topSplitLeftPosition,
+          dur: topSplitDuration,
+          easing: 'easeInOutSine',
+          fill: 'forwards',
+          autoplay: true
+        });
+        right.setAttribute('animation__split', {
+          property: 'position',
+          from: topChildFromPosition,
+          to: topSplitRightPosition,
+          dur: topSplitDuration,
+          easing: 'easeInOutSine',
+          fill: 'forwards',
+          autoplay: true
+        });
+      });
+    }
+
     function playTopAnimations() {
       var group = document.getElementById('top-group');
       var left = document.getElementById('side-top-left');
       var right = document.getElementById('side-top-right');
       if (!group || !left || !right) return;
+
+      if (topSplitTimeout) {
+        clearTimeout(topSplitTimeout);
+        topSplitTimeout = null;
+      }
 
       group.setAttribute('position', sideFromPositions['top-group']);
       left.setAttribute('position', topChildFromPosition);
@@ -327,7 +365,8 @@ var WHATSAPP_NUMBER = '919819605451';
         to: 1,
         dur: 1400,
         easing: 'easeInOutSine',
-        fill: 'forwards'
+        fill: 'forwards',
+        autoplay: true
       });
       right.setAttribute('animation__opacity', {
         property: 'material.opacity',
@@ -335,39 +374,26 @@ var WHATSAPP_NUMBER = '919819605451';
         to: 1,
         dur: 1400,
         easing: 'easeInOutSine',
-        fill: 'forwards'
+        fill: 'forwards',
+        autoplay: true
       });
 
-      group.setAttribute('animation__rise', {
-        property: 'position',
-        from: sideFromPositions['top-group'],
-        to: '0 0.55 0.03',
-        dur: 800,
-        easing: 'easeInOutSine',
-        fill: 'forwards'
+      requestAnimationFrame(function () {
+        group.setAttribute('animation__rise', {
+          property: 'position',
+          from: sideFromPositions['top-group'],
+          to: '0 0.55 0.03',
+          dur: topRiseDuration,
+          easing: 'easeInOutSine',
+          fill: 'forwards',
+          autoplay: true
+        });
       });
 
-      function onRiseComplete(evt) {
-        if (!evt.detail || evt.detail.name !== 'rise') return;
-
-        left.setAttribute('animation__split', {
-          property: 'position',
-          from: topChildFromPosition,
-          to: '-0.28 0 0.02',
-          dur: 600,
-          easing: 'easeInOutSine',
-          fill: 'forwards'
-        });
-        right.setAttribute('animation__split', {
-          property: 'position',
-          from: topChildFromPosition,
-          to: '0.28 0 0.02',
-          dur: 600,
-          easing: 'easeInOutSine',
-          fill: 'forwards'
-        });
-      }
-      group.addEventListener('animationcomplete', onRiseComplete, { once: true });
+      topSplitTimeout = setTimeout(function () {
+        topSplitTimeout = null;
+        playTopSplit(left, right);
+      }, topRiseDuration + 80);
     }
 
     function playSideAnimations() {
@@ -381,6 +407,11 @@ var WHATSAPP_NUMBER = '919819605451';
     // Keep video progress between targetLost/targetFound
     var waVideoSavedTime = 0;
     function resetSideImages() {
+      if (topSplitTimeout) {
+        clearTimeout(topSplitTimeout);
+        topSplitTimeout = null;
+      }
+
       var topLeft = document.getElementById('side-top-left');
       var topRight = document.getElementById('side-top-right');
       var topGroup = document.getElementById('top-group');
