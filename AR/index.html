@@ -137,7 +137,7 @@
   <!-- filterMinCF + filterBeta = One Euro Filter for smooth tracking -->
   <!-- missTolerance = frames before targetLost fires (stops flicker) -->
   <!-- warmupTolerance = frames before targetFound fires (stops false triggers) -->
-  <a-scene mindar-image="imageTargetSrc: ./targets.mind; filterMinCF: 0.001; filterBeta: 1000; missTolerance: 10; warmupTolerance: 5;"
+  <a-scene mindar-image="imageTargetSrc: ./targets.mind; filterMinCF: 0.005; filterBeta: 4000; missTolerance: 10; warmupTolerance: 5;"
            vr-mode-ui="enabled: false"
            device-orientation-permission-ui="enabled: false">
     <a-assets>
@@ -224,7 +224,7 @@
     var topSplitTimeout  = null;
     var topAnimGen       = 0;
     var VIDEO_MAX_SIZE   = 0.8;
-    var WHATSAPP_NUMBER  = '919819605451';
+    var WHATSAPP_NUMBER  = '919819605453';
 
     function openWhatsApp() {
       window.location.href = 'https://wa.me/' + WHATSAPP_NUMBER.replace(/\D/g, '');
